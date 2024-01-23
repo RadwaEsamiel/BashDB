@@ -1,0 +1,89 @@
+#!/bin/bash
+
+shopt -s extglob
+
+
+main_options_arr=("Create Table" "List Table" "Update Table" "Drop Table" "insert into Table" "Select Data" "update Data" "Delete Data" "Exit" "Return")
+
+while true
+do
+    echo "Choose from the main options:"
+
+    select option in "${main_options_arr[@]}"
+    do 
+       case $REPLY in
+    1) 
+        echo "Creating Table"
+        echo "Enter 'q' if you want to return to the main options"
+        . ~/project/createTable 
+        break
+        ;;
+    2)  
+        echo "Listing Table"
+        echo "Enter 'q' if you want to return the main options"
+        . ~/project/listTable
+        break
+        ;;
+    3)  
+        echo "Updating Table"
+        echo "Enter 'q' if you want to return the main options"
+        . ~/project/updateTable 
+        break
+        ;;
+    4)  
+        echo "Dropping Table"
+        echo "Enter 'q' if you want to return the main options"
+        . ~/project/dropTable 
+        break
+        ;;
+    5) 
+        echo "Inserting into Table"
+        echo "Enter 'q' if you want to return the main options"
+        . ~/project/insertTable 
+        break
+        ;;
+    6)
+        echo "Selecting Data from Table"
+        echo "Enter 'q' if you want to return the main options"
+        . ~/project/selectTable 
+        break
+        ;;
+    7)
+        echo "Updating Data in Table"
+        echo "Enter 'q' if you want to return the main options"
+        . ~/project/updateData
+        break
+        ;;
+    8)
+        echo "Deleting Data from Table"
+        echo "Enter 'q' if you want to return the main options"
+        . ~/project/deleteData 
+        break
+        ;;
+    9)
+        echo "Exiting"
+        exit 
+        ;;
+    10)
+        echo "Returning to main list"
+        . ~/project/mainEntry 
+        break
+        ;;
+    *)
+        echo "Invalid option"
+        ;;
+esac
+
+
+        read -n 1 -p "Press Enter to return to main options or press 'q' to quit: " choice
+        choice=${choice,,}
+
+        if [ "$choice" == "q" ]; then
+            echo "Exiting"
+            exit
+        fi
+		. ~/project/mainOptions
+    done
+done
+
+

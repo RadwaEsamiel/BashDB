@@ -1,0 +1,67 @@
+#!/usr/bin/bash
+
+shopt -s extglob
+
+pass=~/DBF
+                ls -F "$pass" | grep '/' | tr '/' ' '
+
+while true; do
+    read -p "Enter the name of the Database you want to Drop: " DBname
+    DBname=${DBname,,}
+
+    case "$DBname" in 
+        "q")
+            read -p "Do you want to return to the main list? (y/n): " answer
+            answer=${answer,,}
+
+            case "$answer" in
+                y)
+                    echo "Returning to the main list..."
+                    . ~/project/mainEntry 
+                    break
+                    ;;
+                n)
+                    echo "Continue connecting to a database..."
+                    continue
+                    ;;
+                *)
+                    echo "Invalid option"
+                    continue
+                    ;;
+            esac
+            ;;
+        ""|" ")
+            echo "Database name cannot be empty."
+            continue
+            ;;
+        *)
+            if [[ ! -d "$pass/$DBname" ]]; then
+                echo "This Database name doesn't exist"
+                continue 
+            else 
+                read -p "Are you sure you want to delete the '$DBname' database? (y/n): " answer
+                answer=${answer,,}
+
+                case "$answer" in 
+                    y)
+                        rm -r "$pass/$DBname"
+                        echo "Database '$DBname' was dropped successfully"
+                        read -p "Press enter to return to the main list " final
+                        . ~/project/mainEntry 
+                        break
+                        ;;
+                    n)
+                        echo "Returning to main options"
+                        . ~/project/mainEntry 
+                        break
+                        ;;
+                    *)
+                        echo "Invalid option"
+                        continue
+                        ;;
+                esac 
+            fi 
+            ;;
+    esac 
+done
+

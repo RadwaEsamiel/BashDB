@@ -1,0 +1,324 @@
+#!/bin/bash
+
+shopt -s extglob
+export LC_COLLATE=C
+col_arr=()
+datatype_arr=()
+all_pkarr=()
+str1=''
+str2=''
+str_pk=''
+tables=()
+rowdata=''
+old_isf=$ISF
+
+
+while true; do 
+
+ echo "All tables "
+echo "------------- "
+                ls | grep -v '_metadata'
+echo "------------- "
+
+    read -p "Enter the table name you want to update: " tablename
+
+    tablename=${tablename,,}
+    
+    case "$tablename" in
+        "q")
+            read -p "Do you want to return to the main list? (y/n): " answer
+            answer=${answer,,}
+
+            case "$answer" in
+                y)
+                    echo "Returning to the main list..."
+                    . ~/project/mainEntry 
+                    break
+                    ;;
+                n)
+                    echo "Continue updating the table..."
+                    continue
+                    ;;
+                *)
+                    echo "Invalid option"
+                    ;;
+            esac
+            ;;
+        *)
+            if [ ! -f "$tablename" ]; then
+                echo "Please enter a valid table name." 
+            else
+                all_pk=$(cut -d : -f 1 "$tablename")
+                read -ra all_pkarr <<< "$all_pk"
+                str1=$(awk  '{if (NR == 1){print $0}}' "$tablename"_metadata)
+                str2=$(awk  '{if (NR == 2){print $0}}' "$tablename"_metadata)
+                IFS=':'
+                read -a col_arr <<< "$str1"
+                read -a datatype_arr <<< "$str2"
+                IFS=$old_isf
+
+                break
+            fi 
+            ;;
+    esac
+done
+
+PS4="Select an option: "
+select option in "Update table name" "Add or Remove column" "Update column datatype" "Exit"; do
+    case $REPLY in
+        1)
+            while true; do
+                read -p "Enter new table name: " new_tablename
+
+                case $new_tablename in
+                    '' | ' ')
+                        echo "You must enter a name first."
+                        continue
+                        ;;
+                    [0-9]*)
+                        echo "Table name can't start with a number."
+                        continue
+                        ;;
+                    *[\!\@\#\$\%^\&\*\(\)\+\|\,\;:~\`\.\/\=\-\]\>\[\<\']*)
+                        echo "Table name can't contain any special characters."
+                        continue
+                        ;;
+                    +([a-zA-Z0-9]*))
+                        if [ ${#new_tablename} -lt 3 ]; then
+                            echo "Table name should be three characters or more."
+                            continue
+                        fi
+
+                        new_tablename=$(echo "$new_tablename" | sed 's/[[:space:]]/_/g')
+
+                        if [ -e "$new_tablename" ]; then
+                            echo "Table with this name already exists."
+                        else
+         mv -n "$tablename"_metadata "${new_tablename}_metadata" 
+mv -n "$tablename" "$new_tablename"
+
+                            echo "Table successfully renamed."
+ . ~/project/mainEntry
+                            break
+                        fi
+
+                        ;;
+                    *)
+                        echo "Invalid Entry."
+return
+                        ;;
+                esac
+            done
+            ;;
+        2)
+
+echo "All columns"
+    echo "-------------"
+
+    for ((j=0; j<${#col_arr[@]}; j++)); do
+        echo $((j+1))'-' "${col_arr[j]} "
+        echo "-------------"
+    done
+
+            select column_option in "Add column" "Remove column" "Cancel"; do
+               case $REPLY in
+    1)
+        while true; do
+            read -p "Enter name of column: " new_column
+
+            case $new_column in
+                '' | ' ')
+                    echo "You must enter a name first."
+                    continue
+                    ;;
+                [0-9]*)
+                    echo "Column name can't start with a number."
+                    continue
+                    ;;
+                *[\!\@\#\$\%^\&\*\(\)\+\|\,\;:~\`\.\/\=\-\]\>\[\<\']*)
+                    echo "Column name can't contain any special characters."
+                    continue
+                    ;;
+
+
+                +([a-zA-Z0-9]*))
+
+       if [[ " ${col_arr[@]} " =~ " $new_column " ]]; then
+                        echo "This column name already exists in the table."
+                    else
+
+
+                        read -p "Enter data type of the new column (int OR string): " new_column_data_type
+                        new_column_data_type=${new_column_data_type,,}
+
+
+                        if [[ $new_column_data_type == "int" || $new_column_data_type == "string" ]]; then
+    sed -i "1s/$/$new_column:/" "${tablename}_metadata"
+    sed -i "2s/$/$new_column_data_type:/" "${tablename}_metadata"
+
+
+awk '{ $0 = $0 "null:" }1' "$tablename" > temp && mv temp "$tablename"
+
+                            echo -e "Column '$new_column' added successfully."
+ . ~/project/mainEntry
+                            break
+
+                        else
+                            echo -e "Please enter int OR string only."
+                            continue
+                        fi
+                    fi
+                    ;;
+                *)
+                    echo "Invalid Entry."
+return
+                    ;;
+            esac
+        done
+        ;;
+ 
+
+                    2)
+
+                       while true; do
+    read -p "Enter name of the column to remove: " column_to_remove
+
+    if [[ " ${col_arr[@]} " =~ " $column_to_remove " ]]; then
+        colnum=$(awk -v col="$column_to_remove" -F ':' '{for (i=1; i<=NF; i++) if ($i == col) print i}' "${tablename}_metadata")
+
+        awk -F ':' -v col="$colnum" 'BEGIN{FS=OFS=":"}{
+            if (col != "") {
+                for (i=1; i<=NF; i++) {
+                    if (i == col) {
+                          $i = "";
+                    }
+                }
+ 		gsub(/::$/, ":", $0);
+		gsub(/::/, ":", $0);
+                print $0
+            }
+        }' "$tablename" > temp && mv temp "$tablename"
+
+
+
+awk -v colnum="$colnum" -v datatype="${datatype_arr[$colnum-1]}" -F ':' '{
+        if (NR==1) {
+            gsub(":" $colnum ":", ":", $0);
+        }
+        if (NR==2) {
+            gsub(":" datatype ":", ":", $0);
+        }
+        print $0;
+    }' "${tablename}_metadata" > temp_metadata && mv temp_metadata "${tablename}_metadata"
+
+        echo "Column '$column_to_remove' removed successfully."
+ . ~/project/mainEntry
+    else
+        echo "Column '$column_to_remove' not found in the table."
+    fi
+done
+
+                        ;;
+                    3)
+                        echo "Canceling..."
+                        break
+                        ;;
+                    *)
+                        echo "Invalid option."
+return 
+                        ;;
+                esac
+            done
+            ;;
+        3)
+echo "All columns"
+    echo "-------------"
+
+    for ((j=0; j<${#col_arr[@]}; j++)); do
+        echo $((j+1))'-' "${col_arr[j]} " "|" "${datatype_arr[j]} "
+        echo "-------------"
+    done
+
+           while true; do
+    read -p "Enter name of the column to update its data type: " column_to_update
+
+    if [[ " ${col_arr[@]} " =~ " $column_to_update " ]]; then
+        colnum=$(awk -v col="$column_to_update" -F ':' '{for (i=1; i<=NF; i++) if ($i == col) print i}' "${tablename}_metadata")
+
+        if ! awk -F ':' -v col="$colnum" 'NR > 1 && $col != "null" { exit 1 }' "$tablename"; then
+
+
+            echo "Column '$column_to_update' datatype can't be updated as there's data with the current datatype already saved in it."
+        else
+            if [[ ${datatype_arr[$colnum -1]} == "int" ]]; then
+                read -p "Do you want to switch data type of column $column_to_update to string? (y/n): " answer
+
+                case "$answer" in
+                    y)
+                       awk -v colnum="$colnum" 'BEGIN{FS=OFS=":"}{
+                if (NR == 2) {
+                    $colnum = "string"
+                }
+		gsub(/::$/, ":", $0);
+		gsub(/::/, ":", $0);
+                print $0
+            }' "${tablename}_metadata" > temp_metadata && mv temp_metadata "${tablename}_metadata"
+
+
+                        echo "Column '$column_to_update' updated successfully."
+ . ~/project/mainEntry
+                        ;;
+                    n)
+                        echo "Returning to main list..."
+                        . ~/project/mainEntry 
+                        break
+                        ;;
+                    *)
+                        echo "Invalid option."
+                        ;;
+                esac
+            else
+                read -p "Do you want to switch data type of column $column_to_update to int? (y/n): " answer
+
+                case "$answer" in
+                    y)
+                        awk -v colnum="$colnum" 'BEGIN{FS=OFS=":"}{
+                if (NR == 2) {
+                    $colnum = "int"
+                }
+                print $0
+            }' "${tablename}_metadata" > temp_metadata && mv temp_metadata "${tablename}_metadata"
+
+
+            
+                        echo "Column '$column_to_update' updated successfully."
+ . ~/project/mainEntry
+                        ;;
+                    n)
+                        echo "Returning to main list..."
+                        . ~/project/mainEntry 
+                        break
+                        ;;
+                    *)
+                        echo "Invalid option."
+                        ;;
+                esac
+            fi
+        fi
+    else
+        echo "Column '$column_to_update' not found in the table."
+        continue
+    fi
+done
+
+            ;;
+        4)
+            echo "Exiting..."
+            break
+            ;;
+        *)
+            echo "Invalid option."
+            ;;
+    esac
+done
+

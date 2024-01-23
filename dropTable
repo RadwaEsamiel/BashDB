@@ -1,0 +1,72 @@
+#!/usr/bin/bash
+
+shopt -s extglob
+
+while true; do
+ echo "All tables "
+echo "------------- "
+                ls | grep -v '_metadata'
+echo "------------- "
+
+    read -p "Enter the name of the table you want to Drop: " TBname
+    TBname=${TBname,,}
+
+    case "$TBname" in 
+        "q")
+            read -p "Do you want to return to the main options? (y/n): " answer
+            answer=${answer,,}
+
+            case "$answer" in
+                y)
+                    echo "Returning to the main list..."
+                        . ~/project/mainEntry 
+                    break
+                    ;;
+                n)
+                    echo "Continue to drop table..."
+                    continue
+                    ;;
+                *)
+                    echo "Invalid option"
+                    continue
+                    ;;
+            esac
+            ;;
+        ""|" ")
+            echo "Table name cannot be empty."
+            continue
+            ;;
+        *)
+            if [[ ! -f $TBname ]]
+ then
+                echo "This Table name doesn't exist"
+                continue 
+            else 
+                read -p "Are you sure you want to drop the '$TBname' Table? all the data of the table will be deleted permanently (y/n): " answer
+                answer=${answer,,}
+
+                case "$answer" in 
+                    y)
+                        rm  "$TBname"
+                        rm  "${TBname}_metadata"
+                        echo "Table and data '$TBname' was dropped successfully"
+
+                        read -p "Press enter to return to the main list " final
+                        . ~/project/mainEntry 
+                        break
+                        ;;
+                    n)
+                        echo "Returning to main options"
+                        . ~/project/mainEntry 
+                        break
+                        ;;
+                    *)
+                        echo "Invalid option"
+                        continue
+                        ;;
+                esac 
+            fi 
+            ;;
+    esac 
+done
+

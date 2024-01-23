@@ -1,0 +1,57 @@
+#!/bin/bash
+
+shopt -s extglob
+
+DatabaseFolder=~/DBF
+mkdir -p "$DatabaseFolder"
+cd "$DatabaseFolder" || exit
+
+main_options_arr=("Create Database" "List Databases" "Connect to Database" "Drop Database" "Exit")
+
+while true
+do
+    echo "Choose from the main list:"
+
+    select entry in "${main_options_arr[@]}"
+    do 
+        case $REPLY in
+            1) 
+                echo "Creating Database
+    Enter 'q' to return to the main list"
+                . ~/project/createDB 
+                ;;
+            2)  
+                echo "Listing Databases
+    Enter 'q' to return to the main list"
+                . ~/project/listDB 
+                ;;
+            3)  
+                echo "Connecting to Database
+    Enter 'q' to return to the main list"
+                . ~/project/connectDB 
+                ;;
+            4)  
+                echo "Dropping Database
+    Enter 'q' to return to the main list"
+                . ~/project/dropDB 
+                ;;
+            5) 
+                echo "Exiting"
+                exit 
+                ;;
+            *)
+                echo "Invalid option. Please enter a number corresponding to the menu."
+                ;;
+        esac
+
+        read -n 1 -p "Press Enter to return to main list or press 'q' to quit: " choice
+        choice=${choice,,}
+
+        if [ "$choice" == "q" ]; then
+            echo "Exiting"
+            exit
+        fi
+ . ~/project/mainEntry
+    done
+done
+

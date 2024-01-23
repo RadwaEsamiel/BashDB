@@ -1,0 +1,143 @@
+#!/bin/bash
+
+shopt -s extglob
+
+export LC_COLLATE=C
+
+
+while true; do
+    read -p "Enter Table Name: " TableName
+
+    case $TableName in
+"q")
+            read -p "Do you want to return to the main options? (y/n): " answer
+           answer=${answer,,}
+
+        case "$answer" in
+            y)
+                echo "Returning to the main options..."
+                    . ~/project/mainEntry 
+                break
+                ;;
+            n)
+                echo "Continue creating a table..."
+                continue
+                ;;
+            *)
+                echo "Invalid option"
+	continue
+                ;;
+        esac
+;;
+    '' | ' ')
+        echo "You must enter a name first"
+        continue
+        ;;
+
+    [0-9]*)
+        echo "Table name can't start with a number"
+        continue
+        ;;
+
+    *[\!\@\#\$\%^\&\*\(\)\+\|\,\;:~\`\.\/\=\-\]\>\[\<\']*)
+        echo "Table name can't contain any special characters"
+        continue
+        ;;
+    +([a-zA-Z0-9]*))
+        if [ ${#TableName} -lt 3 ]; then
+            echo "Table name should be three characters or more"
+            continue
+        fi
+
+        TableName=$(echo "$TableName" | sed 's/[[:space:]]/_/g')
+
+        if [ -f "$TableName" ]; then
+            echo "This Table name already exists"
+        else
+            touch "${TableName}_metadata"
+            touch "$TableName"
+            break
+        fi
+        ;;
+    *)
+        echo "Invalid Entry"
+        ;;
+    esac
+done
+
+while true; do
+    read -p "Enter number of columns: " NumColumns
+
+    if [[ $NumColumns =~ ^[0-9]+$ && $NumColumns -gt 0 ]]; then
+        echo "The number of columns you choose is "$NumColumns" "
+        break
+    else
+        echo "Please enter a valid number"
+    fi
+done
+
+ColumnNames=$(echo "$ColumnNames" | sed 's/[[:space:]]/_/g')
+DataTypes=''
+echo "The first column should be the primary key"
+for ((i = 1; i <= $NumColumns; i++)); do
+    while true; do
+        read -p "Enter name of column $i: " ColumnName
+
+        case $ColumnName in
+        '' | ' ')
+            echo "You must enter a name first"
+            continue
+            ;;
+
+        [0-9]*)
+            echo "Column name can't start with a number"
+            continue
+            ;;
+
+        *[\!\@\#\$\%^\&\*\(\)\+\|\,\;:~\`\.\/\=\-\]\>\[\<\']*)
+            echo "Column name can't contain any special characters"
+            continue
+            ;;
+        +([a-zA-Z0-9]*))
+            if [[ $ColumnNames == *"${ColumnName}"* ]]; then
+                echo -e " This column already exists"
+                continue
+            else
+                ColumnNames+=$ColumnName:
+
+                while true; do
+                    read -p "Enter data type of column $i (int OR string): " DataType
+
+   DataType=${DataType,,}
+                    if [[ $DataType == "int" || $DataType == "string" ]]; then
+                        DataTypes+=$DataType:
+                        break
+                    else
+                        echo -e "Please enter int OR string only"
+                        continue
+                    fi
+done
+
+
+                break
+            fi
+            ;;
+        esac
+
+    done
+done
+echo $ColumnNames >> "${TableName}_metadata"
+echo $DataTypes >> "${TableName}_metadata"
+echo "Table created successfully"
+ColumnNames=''
+
+
+read -n 1 -p "Press Enter to return to main list or press 'q' to quit: " choice
+        choice=${choice,,}
+
+        if [ "$choice" == "q" ]; then
+            echo "Exiting"
+            exit
+        fi
+ . ~/project/mainEntry
+

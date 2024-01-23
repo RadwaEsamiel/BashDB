@@ -1,0 +1,126 @@
+#!/bin/bash
+
+shopt -s extglob
+export LC_COLLATE=C
+all_pkarr=()
+
+
+while true; do
+ echo "All tables "
+echo "------------- "
+                ls | grep -v '_metadata'
+echo "------------- "
+
+    read -p "Enter the table name you want to select data from: " tablename
+
+    tablename=${tablename,,}
+    
+    case "$tablename" in
+        "q")
+            read -p "Do you want to return to the main list? (y/n): " answer
+            answer=${answer,,}
+
+            case "$answer" in
+                y)
+                    echo "Returning to the main list..."
+                    . ~/project/mainEntry 
+                    exit
+                    ;;
+                n)
+                    echo "Continue listing a database..."
+                    continue
+                    ;;
+                *)
+                    echo "Invalid option"
+                    ;;
+            esac
+            ;;
+        *)
+            if [ ! -f "$tablename" ]; then
+                echo "Please enter a valid table name." 
+            else
+col_arr=$(awk -F ':' 'NR == 1 {gsub(/:$/, "", $0); print $0}' "${tablename}_metadata")
+numofcol=$(awk -F ':' 'END {print NF}' "${tablename}_metadata")
+break
+
+            fi
+            ;;
+    esac
+done
+
+PS3="Select an option: "
+select option in "Select All" "Select by Row" "Select by Columns" "Exit"; do
+    case $REPLY in
+        1)
+	echo "|"$(echo "${col_arr[@]}" | sed 's/:/|/g')
+
+
+
+            echo "-------------"
+
+            awk 'BEGIN{ 
+                FS=OFS=":"
+            }
+            {
+                print NR "|" $0
+            }' "$tablename" | sed 's/:/|/g'
+
+            break
+            ;;
+        2)
+
+echo "All columns"
+echo "-------------"
+echo "$col_arr" | tr ':' '\n' | awk '{print NR"-"$0; print "-------------"}'
+ 
+
+while true
+do
+read -p "Please enter number of column you want to select by:" colnum
+if [[ $colnum =~ ^[0-9]+$ && $numofcol -gt $colnum ]]
+then
+
+           awk -v col="$colnum" -F ':' '{print $col}' "$tablename" 
+
+read -p "Select from column when value = " valueofcol
+
+echo "Row num |""|"$(echo "${col_arr[@]}" | sed 's/:/|/g')
+awk -v col="$colnum" -v value="$valueofcol" -F ':' '{
+if($col ==  value)
+print NR"       |" substr($0, 1, length($0)-1)
+}' $tablename | sed 's/:/|/g'
+break
+else 
+echo "column not found please enter a valid number!"
+continue
+fi
+done
+break
+;;
+        3)
+          
+echo "All columns"
+echo "-------------"
+echo "$col_arr" | tr ':' '\n' | awk '{print NR"-"$0; print "-------------"}'
+
+      read -p "Please enter the number of the column you want to select: " colnum
+
+if [[ $colnum =~ ^[0-9]+$ && $numofcol -gt $colnum ]]
+then
+               
+           awk -v col="$colnum" -F ':' '{print $col}' "$tablename"
+            else 
+                echo "Column not found!"
+            fi
+break
+            ;;
+        4)
+            
+exit 
+            ;;
+        *)
+            echo "Invalid option. Please choose a number between 1 and 4."
+            ;;
+    esac
+done
+return

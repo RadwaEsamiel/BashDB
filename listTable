@@ -1,0 +1,87 @@
+#!/usr/bin/bash
+
+shopt -s extglob
+
+
+while true
+do
+    read -p "Do you want to list all tables in this database? (y/n): " choice
+
+    choice=${choice,,}
+
+    case "$choice" in
+        "q")
+            read -p "Do you want to return to the main list? (y/n): " answer
+            answer=${answer,,}
+
+            case "$answer" in
+                y)
+                    echo "Returning to the main list..."
+		. ~/project/mainOptions
+                    break
+                    ;;
+                n)
+                    echo "Continue listing tables..."
+                    continue
+                    ;;
+                *)
+                    echo "Invalid option"
+                    ;;
+            esac
+            ;;
+
+        "y")
+            if [ -z "$(ls -A)" ]
+then
+                read -p "There are no Tables created in this Database. Press enter to create one." CR
+                . ~/project/createTable
+            else
+
+                echo "Listing all tables in the connected database:"
+echo "All tables "
+echo "------------- "
+                ls | grep -v '_metadata'
+echo "------------- "
+                   . ~/project/mainEntry
+            break
+            fi
+            ;;
+
+        "n")
+            read -p "Enter the table name you want to select : " tablename
+
+    tablename=${tablename,,}
+    
+ if [ ! -f "$tablename" ]; then
+                echo "Please enter a valid table name." 
+            else
+col_arr=$(awk -F ':' 'NR == 1 {gsub(/:$/, "", $0); print $0}' "${tablename}_metadata")
+
+echo "|"$(echo "${col_arr[@]}" | sed 's/:/|/g')
+
+
+
+            echo "-------------"
+
+            awk 'BEGIN{ 
+                FS=OFS=":"
+            }
+            {
+                print NR "|" $0
+            }' "$tablename" | sed 's/:/|/g'
+fi
+            break
+                   . ~/project/mainEntry
+            ;;
+
+
+ ""|" ")
+            echo "please insert an answer first."
+            continue
+            ;;
+        *)
+            echo "Invalid option"
+            ;;
+    esac
+done
+

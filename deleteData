@@ -1,0 +1,104 @@
+#!/bin/bash
+
+
+while true; do
+
+ echo "All tables "
+echo "------------- "
+                ls | grep -v '_metadata'
+echo "------------- "
+
+
+    read -p "Enter the table name you want to delete from: " tablename
+    if [ ! -e "$tablename" ]; then
+        echo "Please enter a valid name."
+    else
+        tablename=${tablename,,}
+
+        case "$tablename" in 
+            "q")
+                read -p "Do you want to return to the main options? (y/n): " answer
+                answer=${answer,,}
+
+                case "$answer" in
+                    y)
+                        echo "Returning to the main list..."
+                        . ~/project/mainEntry 
+                        break
+                        ;;
+                    n)
+                        echo "Continue to update table..."
+                        continue
+                        ;;
+                    *)
+                        echo "Invalid option"
+                        continue
+                        ;;
+                esac
+                ;;
+        esac
+  
+
+str1=`awk -F ':'  '{if (NR == 1){print $0}}' "${tablename}_metadata"`
+
+set -f                     
+col_arr=(${str1//:/ })
+
+select opt in "Delete All" "Delete Specific row" "Exit"; do
+    case $REPLY in 
+        1)
+            alllines=`cat "$tablename" | wc -l`
+
+            if (( $alllines > 0 )); then
+                cat /dev/null > "$tablename"
+                echo "All Data deleted successfully."
+            . ~/project/mainEntry
+            else
+                echo "No Data found."
+            . ~/project/mainEntry
+            fi		
+            ;;
+        2)
+            echo "All columns "
+            echo "------------- "
+            for (( j=0 ; j < ${#col_arr[@]} ; j++)); do
+                echo $(( j+1 ))'-' "${col_arr[j]} "
+            done
+
+            while true; do
+                read -p "please enter number of col you want to delete by: " colnum
+                if [[ $colnum =~ ^[0-9]+$ && ${#col_arr[@]} -ge $colnum ]]; then
+                    read -p "please enter value of col you want to delete by: " valueofcol
+                    linebeforedelete=`cat "$tablename" | wc -l `
+                    valueofcol=$(echo "$valueofcol" | sed 's/[[:space:]]/_/g')
+
+                    awk -v col="$colnum" -v value="$valueofcol" -F ':' '{
+                        if ($col !=  value)
+                            print $0
+                    }' "$tablename" > /tmp/tmpdata 
+
+                    mv /tmp/tmpdata "$tablename"
+                    lineafterdelete=`cat "$tablename" | wc -l `
+
+                    if (( $lineafterdelete != $linebeforedelete )); then
+                        echo "$(( linebeforedelete - lineafterdelete )) row deleted successfully."
+            . ~/project/mainEntry
+                    else
+                        echo "No data deleted."
+            . ~/project/mainEntry
+                    fi        
+                    break
+                else 
+                    echo "column not found please enter a valid number!"
+                    continue
+                fi
+            done
+            ;;
+        3)
+exit
+            ;;
+    esac
+done
+  fi
+done
+

@@ -1,0 +1,646 @@
+#!/bin/bash
+
+shopt -s extglob
+export LC_COLLATE=C
+col_arr=()
+row_arr=()
+datatype_arr=()
+values=()
+all_pkarr=()
+tables=()
+rowdata=''
+old_isf=$IFS
+
+
+while true; do 
+ echo "All tables "
+echo "------------- "
+                ls | grep -v '_metadata'
+echo "------------- "
+
+    read -p "Enter the table name you want to update: " tablename
+
+    tablename=${tablename,,}
+    
+
+    case "$tablename" in
+        "q")
+            read -p "Do you want to return to the main list? (y/n): " answer
+            answer=${answer,,}
+
+            case "$answer" in
+                y)
+                    echo "Returning to the main list..."
+                    . ~/project/mainEntry 
+                    break
+                    ;;
+                n)
+                    echo "Continue updating the table..."
+                    continue
+                    ;;
+                *)
+                    echo "Invalid option"
+                    ;;
+            esac
+            ;;
+        *)
+            if [ ! -f "$tablename" ]; then
+                echo "Please enter a valid table name."
+            else
+            
+                metadataLine=$(awk '{if (NR == 1){print $0}}' "$tablename"_metadata)
+                datatypeLine=$(awk '{if (NR == 2){print $0}}' "$tablename"_metadata)
+	
+                IFS=':'
+                read -a col_arr <<< "$metadataLine"
+                read -a datatype_arr <<< "$datatypeLine"
+
+
+                IFS=$old_isf
+                break
+            fi 
+            ;;
+    esac
+done
+
+PS4="Select an option: "
+select option in "Update column" "Update row" "Exit"; do
+    case $REPLY in
+        1) 
+echo "All columns "
+echo "------------- "
+            for ((j=0; j<${#col_arr[@]}; j++)); do
+                echo $((j+1))'-' "${col_arr[j]} "
+            done
+
+
+PS6="Select which action you want to carry on with :"
+            select option in "Update all column" "Update by value" "Return" ; do
+                case $REPLY in
+                    1)
+while true; do
+    echo "All columns"
+    echo "-------------"
+
+    for ((j=0; j<${#col_arr[@]}; j++)); do
+        echo $((j+1))'-' "${col_arr[j]} "
+        echo "-------------"
+    done
+
+    read -p "Please enter the number of the column you want to update in: " colnum
+
+    if ((colnum == 1)); then
+        echo "Primary column can't be updated with more than one value at once as it will violate uniqueness."
+        . ~/project/updateData
+        break
+    fi
+
+    if [[ $colnum =~ ^[0-9]+$ && ${#col_arr[@]} -ge $colnum ]]; then
+        read -p "Please enter new value of column ${col_arr[colnum-1]} data type is ${datatype_arr[$colnum-1]}: " valueofnewcol
+    else
+        echo "Column not found. Please enter a valid number!"
+        continue 
+    fi
+
+    while true; do
+        if [[ ${datatype_arr[colnum-1]} == "int" ]]; then
+            if [[ -n $valueofnewcol && $valueofnewcol =~ ^[0-9]+$ && $valueofnewcol -gt 0 ]]; then
+                awk -F ':' -v col="$colnum" -v nvalue="$valueofnewcol" 'BEGIN{FS=OFS=":"}{
+                    for (i=1; i<=NF; i++) {
+                        if (i == col) {
+                            $col = nvalue
+                        }
+                    }
+                    print $0
+                }' "$tablename" > temp && mv temp "$tablename"
+
+                echo "Column data is updated successfully."
+                
+            . ~/project/mainEntry
+break
+            else
+                echo "Data type of column is integer. Please enter numbers."
+                continue 
+            fi
+        else
+            case $valueofnewcol in
+                ''|' ')
+                    echo "You must enter a value first" 
+                    break
+                    ;;
+                [0-9]*)
+                    echo "Value can't start with a number" 
+                    break
+                    ;; 
+                *[\!\@\#\$\%^\&\*\(\)\+\|\,\;:~\`\.\/\=\-\]\>\[\<\']*)
+                    echo "Value can't contain any special characters"
+                    break
+                    ;;
+                +([a-zA-Z0-9]*))
+                    valueofnewcol=$(echo "$valueofnewcol" | sed 's/[[:space:]]/_/g')
+                    awk -F ':' -v col="$colnum" -v nvalue="$valueofnewcol" 'BEGIN{FS=OFS=":"}{
+                    for (i=1; i<=NF; i++) {
+                        if (i == col) {
+                            $col = nvalue
+                        }
+                    }
+                    print $0
+                }' "$tablename" > temp && mv temp "$tablename"
+
+                    echo "Column data is updated successfully."
+                    break
+            . ~/project/mainEntry
+                    ;;
+                *)
+                    echo "Invalid data type. Please enter a string."
+                    continue 
+                    ;;
+            esac
+        fi
+    done
+done
+
+
+
+
+;;
+
+
+2)
+
+while true
+do
+read -p "Please enter the number of the column you want to update with: " colnum
+if [[ $colnum =~ ^[0-9]+$ && ${#col_arr[@]} -ge $colnum ]]
+then
+read -p "update when value of ${col_arr[colnum-1]} = " valueofcol
+while true
+do
+
+read -p "please enter number of column you want to update in :" newcolnum
+if [[ $newcolnum =~ ^[0-9]+$ && ${#col_arr[@]} -ge $newcolnum ]]
+then
+break
+else
+echo "value not found! please enter valid data!"
+continue
+
+fi
+done
+
+break
+else 
+echo "column not found! please enter a valid number!"
+continue
+fi
+done
+		
+
+while true
+do
+read -p "please enter new value of column ${col_arr[newcolnum-1]} data type is ${datatype_arr[$newcolnum-1]}: " valueofnewcol
+if (( $newcolnum==1))
+then
+count_var=`awk -F ':' -v col="$colnum" -v value="$valueofcol" -v  ncol="$newcolnum" -v nvalue="$valueofnewcol" 'BEGIN {
+c=0
+}
+{
+if($col ==  value){
+c++
+}
+}
+END {
+   print c
+
+}' $tablename `
+
+if (( $count_var > 1))
+then
+echo "Primary column can't be updated with more than one value at once as it will violate uniqueness."
+else
+all_pk=`cut -d : -f 1 $tablename`
+read -ra all_pkarr <<< $all_pk
+if [[ ${datatype_arr[newcolnum-1]} == "int" ]]
+then
+if [[ $valueofnewcol =~ ^[0-9]+$ && $valueofnewcol -gt 0 ]]
+then
+for (( j=0 ; j < ${#all_pkarr[@]} ; j++ ))
+do 
+if [[ $valueofnewcol == ${all_pkarr[j]} ]]
+then
+flag=1
+fi
+done
+for (( j=0 ; j < ${#all_pkarr[@]} ; j++))
+do 
+if [[ $valueofnewcol == ${all_pkarr[j]} ]]
+then
+flag=1
+fi
+done
+if (( $flag==1 ))
+then
+echo "This primary key is already exist"
+continue 
+  else
+awk -F ':' -v col="$colnum" -v value="$valueofcol" -v  ncol="$newcolnum" -v nvalue="$valueofnewcol" '
+BEGIN {
+
+    FS=OFS=":"
+}
+{
+if($col ==  value){
+$ncol=nvalue
+print $0
+else
+print $0
+
+}
+}' $tablename > temp && mv temp "$tablename"
+
+                        echo "Data updated successfully."
+fi
+            . ~/project/mainEntry
+break
+
+else
+echo "data type of column is integer please enter numbers "
+continue
+fi 
+else 
+case $valueofnewcol in
+ ''|' ')
+echo "You must enter a value first" 
+break
+;;
+
+[0-9]*)
+ echo "Value can't start with a number" 
+ break
+ ;; 
+
+ *[\!\@\#\$\%^\&\*\(\)\+\|\,\;:~\`\.\/\=\-\]\>\[\<\']*)
+  echo "Value can't contain any special characters"
+break
+            ;;
++([a-zA-Z0-9]*))
+valueofnewcol=$(echo "$valueofnewcol" | sed 's/[[:space:]]/_/g')
+for (( j=0 ; j < ${#all_pkarr[@]} ; j++ ))
+do 
+if [[ $valueofnewcol == ${all_pkarr[j]} ]]
+then
+flag=1
+fi
+done
+for (( j=0 ; j < ${#all_pkarr[@]} ; j++))
+do 
+if [[ $valueofnewcol == ${all_pkarr[j]} ]]
+then
+flag=1
+fi
+done
+if (( $flag==1 ))
+then
+echo "The primary key is already exist"
+ else
+awk -F ':' -v col="$colnum" -v value="$valueofcol" -v  ncol="$newcolnum" -v nvalue="$valueofnewcol" '
+BEGIN {
+
+   FS=OFS=":"
+}
+{
+if($col ==  value){
+$ncol=nvalue
+print $0
+}
+else
+print $0
+
+}' $tablename > temp && mv temp "$tablename"
+                        echo "Data updated successfully."
+fi
+            . ~/project/mainEntry
+break
+
+
+ ;;
+
+*)
+echo "invalid data type please enter String"
+continue
+esac				
+
+fi 
+
+
+
+fi
+
+break
+
+
+else
+
+if [[ ${datatype_arr[newcolnum-1]} == "int" ]]
+then
+if [[ -n $valueofnewcol && $valueofnewcol =~ ^[0-9]+$ && $valueofnewcol -gt 0 ]]
+then
+awk -F 1':' -v col="$colnum" -v value="$valueofcol" -v  ncol="$newcolnum" -v nvalue="$valueofnewcol" '
+BEGIN {
+ 
+   FS=OFS=":"
+}
+{
+if($col ==  value){
+$ncol=nvalue
+print $0
+}
+else
+print $0
+
+}' $tablename > temp && mv temp "$tablename"
+                        echo "Data updated successfully."
+            . ~/project/mainEntry
+break
+
+else
+echo "data type of column is integer please enter numbers "
+continue
+fi 
+else 
+case $valueofnewcol in
+ ''|' ')
+echo "You must enter a value first" 
+continue
+;;
+
+[0-9]*)
+ echo "Value can't start with a number" 
+ continue
+ ;; 
+
+ *[\!\@\#\$\%^\&\*\(\)\+\|\,\;:~\`\.\/\=\-\]\>\[\<\']*)
+  echo "Value can't contain any special characters"
+            continue
+            ;;
++([a-zA-Z0-9]*))
+valueofnewcol=$(echo "$valueofnewcol" | sed 's/[[:space:]]/_/g')
+awk -F ':' -v col="$colnum" -v value="$valueofcol" -v  ncol="$newcolnum" -v nvalue="$valueofnewcol" '
+BEGIN {
+    FS=OFS=":"
+}
+{
+if($col ==  value){
+$ncol=nvalue
+print $0
+}
+else
+print $0
+
+}' $tablename > temp && mv temp "$tablename"
+                        echo "Data updated successfully."
+            . ~/project/mainEntry
+break
+
+ ;;
+
+*)
+echo "invalid data type please enter String"
+continue
+esac				
+
+fi 
+fi 
+done
+
+
+;;
+
+
+3)
+        echo "Returning to main list"
+        . ~/project/mainEntry 
+        break
+        ;;
+    *)
+                        echo "Invalid option. Please choose a number between 1 and 3."
+
+        ;;
+esac
+      
+done
+
+;;
+
+      2)   
+            while IFS= read -r line; do
+                row_arr+=("$line")
+            done < <(sed 's/:/|/g; s/$/ /' "$tablename")
+
+            echo "NR|${col_arr[@]}"
+            echo "-------------"
+            
+            for ((r=0; r<${#row_arr[@]}; r++)); do
+                echo $((r+1))'-' "${row_arr[r]} "
+            done
+
+            read -p "Please enter the primary key associated with the value you want to update: " p_k
+
+            index=0
+
+            p_k=$(echo "$p_k" | sed 's/[[:space:]]/_/g')
+            echo $p_k
+
+            all_pk=`cut -d : -f 1 $tablename`
+            read -ra all_pkarr <<< $all_pk
+            flag=false
+
+            for (( i=0 ; i < ${#all_pkarr[@]} ; i++)); do 
+                if [[ $p_k == ${all_pkarr[i]} ]]; then
+                    (( i++ ))
+                    flag=true
+
+	echo "|"$(echo "${col_arr[@]}" | sed 's/:/|/g')
+
+                    echo "-------------"
+                    sed -n "${i}p" "$tablename" | tr ':' '|'
+
+                    break
+                fi
+            done
+
+            if [[ $flag == "false" ]]; then
+                echo "The primary key not found!"
+                continue  
+            fi
+
+            PS5="Select which action you want to carry on with :"
+            select option in "Update all row" "Update a specific value"; do
+                case $REPLY in
+                    1)
+                        new_row_data=''
+                        for ((i=0; i<${#col_arr[@]}; i++)); do
+                            while true; do
+                                read -p "Please enter new value of column ${col_arr[i]} data type is ${datatype_arr[i]}: " val
+                                flag=false
+
+                                if ((i == 0)); then
+                                    for ((j=0; j<${#all_pkarr[@]}; j++)); do
+                                        val=$(echo "$val" | sed 's/[[:space:]]/_/g')
+
+                                        if [[ $val == ${all_pkarr[j]} ]]; then
+                                            echo "Primary key is already exist."
+                                            flag=true
+                                            
+                                        fi 
+                                    done
+                                fi 
+
+                                if [[ $flag == "true" ]]; then
+                                    continue
+                                fi
+
+                                if [[ $flag == "false" ]]; then
+                                    if [[ ${datatype_arr[i]} == "int" ]]; then
+                                        if [[ -n $val && $val =~ ^[0-9]+$ && $val -gt 0 ]]; then
+                                            new_row_data+=$val:
+                                            break
+                                        else
+                                            echo "Data type of column is integer. Please enter numbers."
+                                            continue
+                                        fi 
+                                    else 
+                                        case $val in
+                                            ''|' ')
+                                                echo "You must enter a value first." 
+                                                continue
+                                                ;;
+                                            [0-9]*)
+                                                echo "Value can't start with a number." 
+                                                continue
+                                                ;; 
+                                            *[\!\@\#\$\%^\&\*\(\)\+\|\,\;:~\`\.\/\=\-\]\>\[\<\']*)
+                                                echo "Value can't contain any special characters."
+                                                continue
+                                                ;;
+                                            +([a-zA-Z0-9]*))
+                                                val=$(echo "$val" | sed 's/[[:space:]]/_/g')
+                                                new_row_data+=$val:
+                                                break
+                                                ;;
+                                            *)
+                                                echo "Invalid data type. Please enter a string."
+                                                continue
+                                                ;;
+                                        esac
+                                    fi
+                                fi 
+                            done
+                        done
+
+                        awk -v row=${i} -v new_row_data="$new_row_data" 'BEGIN{FS=OFS=":"} NR+1==row{$0=new_row_data}1' "$tablename" > temp && mv temp "$tablename"
+
+                        echo "Row updated successfully."
+                        break
+            . ~/project/mainEntry
+                        ;;
+
+                    2) 
+read -p "Please enter the column name you want to update in this row: " colname
+
+if [[ " ${col_arr[@]} " =~ " $colname " ]]; then
+    colnum=$(awk -v col="$colname" -F ':' '{for (i=1; i<=NF; i++) if ($i == col) print i}' "${tablename}_metadata")
+
+    if [ -n "$colnum" ]; then
+        value=$(awk -F ':' -v col="$colnum" -v line="$i" 'NR==line {print $col}' "$tablename")
+        echo "Selected Value: $value"
+
+        read -p "Please enter new value of column ${col_arr[$colnum-1]} data type is ${datatype_arr[$colnum-1]}: " val
+
+        flag=false
+
+        if (($colnum == 1)); then
+            for ((j=0; j<${#all_pkarr[@]}; j++)); do
+                val=$(echo "$val" | sed 's/[[:space:]]/_/g')
+
+                if [[ $val == ${all_pkarr[j]} ]]; then
+                    echo "Primary key is already exist."
+                    flag=true
+                    break
+                fi 
+            done
+
+            if [[ $flag == "true" ]]; then
+                continue
+            fi
+
+            if [[ $flag == "false" ]]; then
+                if [[ ${datatype_arr[colnum-1]} == "int" ]]; then
+	if [[ -n $val && $val =~ ^[0-9]+$ && $val -gt 0 ]]; then
+
+
+                     awk -v colnum="$colnum" -v row="$i" -v val="$val" 'BEGIN{FS=OFS=":"} NR==row{$colnum=val}1' "$tablename" > temp && mv temp "$tablename"
+                    else
+                        echo "Data type of column is integer. Please enter numbers."
+                        continue
+                    fi 
+                else 
+                    case $val in
+                        ''|' ')
+                            echo "You must enter a value first." 
+                            continue
+                            ;;
+                        [0-9]*)
+                            echo "Value can't start with a number." 
+                            continue
+                            ;; 
+                        *[\!\@\#\$\%^\&\*\(\)\+\|\,\;:~\`\.\/\=\-\]\>\[\<\']*)
+                            echo "Value can't contain any special characters."
+                            continue
+                            ;;
+                        +([a-zA-Z0-9]*))
+                            val=$(echo "$val" | sed 's/[[:space:]]/_/g')
+                            ;;
+                        *)
+                            echo "Invalid data type. Please enter a string."
+                            continue
+                            ;;
+                    esac
+                fi
+            fi 
+        fi 
+
+  awk -v colnum="$colnum" -v row="$i" -v val="$val" 'BEGIN{FS=OFS=":"} NR==row{$colnum=val}1' "$tablename" > temp && mv temp "$tablename"
+
+        echo "Row updated successfully."
+
+            . ~/project/mainEntry
+break
+    else
+        echo "Column not found!"
+continue 
+    fi
+else
+    echo "Column not found!"
+continue 
+fi
+
+
+ 
+                        ;;
+                    *)
+                        echo "Invalid option. Please choose a number between 1 and 2."
+continue 
+                        ;;
+                esac
+            done
+            ;;
+        3)
+            exit
+            ;;
+        *)
+            echo "Invalid option. Please choose a number between 1 and 3."
+continue 
+            ;;
+    esac
+done

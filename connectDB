@@ -1,0 +1,57 @@
+#!/usr/bin/bash
+
+shopt -s extglob
+
+pass=~/DBF
+
+while true; do
+    read -p "Enter the name of the Database you want to connect : " DBname
+DBname=${DBname,,}
+
+    case "$DBname" in 
+        "q")
+            read -p "Do you want to return to the main list? (y/n): " answer
+           answer=${answer,,}
+
+        case "$answer" in
+            y)
+                echo "Returning to the main list..."
+                . ~/project/mainEntry 
+                break
+                ;;
+            n)
+                echo "Continue connecting to a database..."
+                continue
+                ;;
+            *)
+                echo "Invalid option"
+	continue
+                ;;
+        esac
+;;
+        ""|" ")
+            echo "Database name cannot be empty."
+            continue
+            ;;
+        *)
+         DBname=$(echo "$DBname" | sed 's/[[:space:]]/_/g')
+
+            if [[ ! -d "$pass/$DBname" ]]; then
+                echo "This Database name doesn't exist"
+                continue 
+            fi 
+
+	if [[ -z "$(ls -A "$pass/$DBname")" ]]; then
+ 			cd "$pass/$DBname"
+                read -p "This database is empty press enter to check all your options." 
+		. ~/project/mainOptions
+            else 
+                echo "Connecting you to Database.."
+                cd "$pass/$DBname" || { echo "Failed to change directory."; exit 1; }
+		. ~/project/mainOptions
+                break
+            fi 
+            ;;
+    esac
+done
+

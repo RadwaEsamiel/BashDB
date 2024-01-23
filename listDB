@@ -1,0 +1,80 @@
+#!/usr/bin/bash
+
+shopt -s extglob
+
+pass=~/DBF
+
+while true; do
+    read -p "Do you want to list all databases? (y/n): " choice
+    choice=${choice,,}
+
+    case "$choice" in
+        "q")
+            read -p "Do you want to return to the main list? (y/n): " answer
+            answer=${answer,,}
+
+            case "$answer" in
+                y)
+                    echo "Returning to the main list..."
+                    . ~/project/mainEntry
+                    break
+                    ;;
+                n)
+                    echo "Continue listing a database..."
+                    continue
+                    ;;
+                *)
+                    echo "Invalid option"
+                    ;;
+            esac
+            ;;
+        "y")
+            if [ -z "$(ls -A "$pass")" ]; then
+                read -p "There are no databases created. Press enter to create one." CR
+                . ~/project/createDB
+            else
+ echo "All Databases "
+echo "------------- "
+                ls -F "$pass" | grep '/' | tr '/' ' '
+echo "------------- "
+            fi
+            ;;
+        "n")
+             read -p "Enter the name of the Database you want to list: " DBnamelist
+
+            if [ -e "$pass/$DBnamelist" ]; then 
+                echo "Listing Database now.."
+ echo "All tables in Datababse " 
+echo "------------- "
+                ls "$pass/$DBnamelist"
+echo "------------- "
+                continue
+            else 
+                echo "This Database name doesn't exist"
+                continue
+            fi 
+            
+            ;;
+	
+	
+	''|' ')
+            echo "Database name cannot be empty."
+            continue
+            ;;
+
+        *)
+            echo "Invalid option"
+            ;;
+    esac
+
+    read -n 1 -p "Press Enter to return to main list or press 'q' to quit: " choice
+    choice=${choice,,}
+
+    if [ "$choice" == "q" ]; then
+        echo "Exiting"
+        exit
+    fi
+
+    . ~/project/mainEntry
+done
+

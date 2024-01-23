@@ -1,0 +1,80 @@
+#!/bin/bash
+
+shopt -s extglob
+
+while true
+do
+    read -p "Enter Database Name: " nameDB
+    nameDB=${nameDB,,}
+
+    case $nameDB in 
+        "q")
+            read -p "Do you want to return to the main list? (y/n): " answer
+            answer=${answer,,}
+
+            case "$answer" in
+                y)
+                    echo "Returning to the main list..."
+                    . ~/project/mainEntry 
+                    break
+                    ;;
+                n)
+                    echo "Continue creating a database..."
+                    continue
+                    ;;
+                *)
+                    echo "Invalid option"
+                    continue
+                    ;;
+            esac
+            ;;
+        
+        ''|' ')
+            echo "You must enter a name first" 
+            continue
+            ;;
+
+        [0-9]*)
+            echo "Database name can't start with a number" 
+            continue
+            ;; 
+
+        *[\!\@\#\$\%^\&\*\(\)\+\|\,\;:~\`\.\/\=\-\]\>\[\<\']*)
+            echo "Database name can't contain any special characters"
+            continue
+            ;;
+        +([a-zA-Z0-9]*))
+            if [ ${#nameDB} -lt 3 ]; then
+                echo "Database name should be three characters or more"
+                continue
+            fi
+
+            nameDB=$(echo "$nameDB" | sed 's/[[:space:]]/_/g')
+
+            if [ -e "$nameDB" ]; then 
+                echo "This Database name already exists" 
+            else 
+                mkdir "$nameDB"
+                echo "Database created successfully" 
+                read -p "Press enter to return to the main list " final
+                . ~/project/mainEntry 
+                break
+            fi 
+            ;;
+
+        *)
+            echo "Invalid Entry"
+            ;;
+   esac
+
+        read -n 1 -p "Press Enter to return to main list or press 'q' to quit: " choice
+        choice=${choice,,}
+
+        if [ "$choice" == "q" ]; then
+            echo "Exiting"
+            exit
+        fi
+ . ~/project/mainEntry
+    done
+done
+
