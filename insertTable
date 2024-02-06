@@ -4,26 +4,20 @@ shopt -s extglob
 export LC_COLLATE=C
 col_arr=()
 datatype_arr=()
-all_pkarr=()
 str1=''
 str2=''
-str_pk=''
 tables=()
 rowdata=''
-old_isf=$ISF
+old_isf=$IFS
 
-
-while true
-do 
+while true; do
     echo "All tables "
-echo "------------- "
-                ls | grep -v '_metadata'
-echo "------------- "
+    echo "------------- "
+    ls | grep -v '_metadata'
+    echo "------------- "
 
     read -p "Enter the table name you want to insert data into : " tablename
-tablename=${tablename,,}
-
-
+    tablename=${tablename,,}
 
     case "$tablename" in
         "q")
@@ -46,117 +40,77 @@ tablename=${tablename,,}
             esac
             ;;
         *)
-esac 
+    esac 
 
+    if [ ! -f $tablename ]; then
+        echo "Please enter a valid table name." 
+    else
+        str1=$(awk  '{if (NR == 1){print $0}}' $tablename"_metadata")
+        str2=$(awk  '{if (NR == 2){print $0}}' $tablename"_metadata")
+        IFS=':'
+        read -a col_arr <<< "$str1"
+        read -a datatype_arr <<< "$str2"
+        IFS=$old_isf
 
-if [ ! -f $tablename ]
-then
-echo "please enter a valid table name" 
-else
-all_pk=`cut -d : -f 1 $tablename`
-read -ra all_pkarr <<< $all_pk
-str1=`awk  '{if (NR == 1){
-print $0}}' $tablename"_metadata"`
-str2=`awk  '{if (NR == 2){
-print $0}}' $tablename"_metadata"`
-IFS=':'
-read -a col_arr <<< "$str1"
-read -a datatype_arr <<< "$str2"
-IFS=$old_isf
-
-break
-fi
+        break
+    fi
 done
 
-for (( i=0 ; i < ${#col_arr[@]} ; i++))
-do 
+for ((i=0; i<${#col_arr[@]}; i++)); do
+    while true; do
+        read -p "Please enter the value of col ${col_arr[i]} data type is ${datatype_arr[i]}: " val
+        flag=false
 
-while true
-do
-read -p "
-please enter value of col ${col_arr[i]} data type is ${datatype_arr[i]} :"  val
-flag=false
-if(( i== 0))
-then
- for (( j=0 ; j < ${#all_pkarr[@]} ; j++))
-do 
- val=$(echo "$val" | sed 's/[[:space:]]/_/g')
+  
+        if grep -q "^$val:" "$tablename"; then
+            echo "Primary key already exists."
+            flag=true
+        fi
 
-
-if [[ $val == ${all_pkarr[j]} ]]
-then
-echo "primary key is already exist "
-flag=true
-break
-fi 
-done
-fi 
-if [[ $flag == "true" ]]
-then
-continue
-fi
-
-
-if [[ $flag == "false" ]]
-then
-if [[ ${datatype_arr[i]} == "int" ]]
-then
-if [[ $val =~ ^[0-9]+$ && $val -gt 0 ]]
-then
-rowdata+=$val:
-break
-
-
-
-else
-echo "data type of column is integer please enter numbers "
-continue
-fi 
-
-
-
-else 
-case $val in
- ''|' ')
-echo "You must enter a value first" 
-continue
-;;
-
-[0-9]*)
- echo "Value can't start with a number" 
- continue
- ;; 
-
- *[\!\@\#\$\%^\&\*\(\)\+\|\,\;:~\`\.\/\=\-\]\>\[\<\']*)
-  echo "Value can't contain any special characters"
+        if $flag; then
             continue
-            ;;
-+([a-zA-Z0-9]*))
- val=$(echo "$val" | sed 's/[[:space:]]/_/g')
-rowdata+=$val:
-break
+        fi
 
- ;;
-
-*)
-
-
-echo "invalid data type please enter String"
-continue
-esac				
-fi
-
-fi 
-
-
-done
+        if [[ ${datatype_arr[i]} == "int" ]]; then
+            if [[ $val =~ ^[0-9]+$ && $val -gt 0 ]]; then
+                rowdata+=$val:
+                break
+            else
+                echo "Data type of column is integer. Please enter numbers."
+                continue
+            fi
+        else
+            case $val in
+                ''|' ')
+                    echo "You must enter a value first." 
+                    continue
+                    ;;
+                [0-9]*)
+                    echo "Value can't start with a number." 
+                    continue
+                    ;;
+                *[\!\@\#\$\%^\&\*\(\)\+\|\,\;:~\`\.\/\=\-\]\>\[\<\']*)
+                    echo "Value can't contain any special characters."
+                    continue
+                    ;;
+                +([a-zA-Z0-9]*))
+                    val=$(echo "$val" | sed 's/[[:space:]]/_/g')
+                    rowdata+=$val:
+                    break
+                    ;;
+                *)
+                    echo "Invalid data type. Please enter a string."
+                    continue
+                    ;;
+            esac
+        fi
+    done
 done
 
 echo $rowdata >> $tablename
 
 echo "Data added successfully"
-return
-
-
-
+echo "Returning to the main list..."
+. ~/project/mainEntry 
+break
 
